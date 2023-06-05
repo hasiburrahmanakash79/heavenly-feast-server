@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+jwt = require('jsonwebtoken');
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
@@ -7,6 +8,28 @@ const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+
+// JWT token verify 
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization
+  if(!authorization){
+    return res.status(401).send({ error: true, message: 'unauthorized access'})
+  }
+  //bearer token
+  const token = authorization.split(' ')[1];
+
+  jwt.verify(token, process.env.JWT_TOKEN, (err, decoded) => {
+    if(err){
+      return res.status(401).send({ error: true, message: 'unauthorized access'})
+    }
+    req.decoded = decoded;
+    // console.log("verify jwt", req.decoded);
+    next()
+  })
+}
+
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.xvcivem.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -31,8 +54,26 @@ async function run() {
     const reviewCollection = client.db("heavenlyFeast").collection("review");
     const addToCartCollection = client.db("heavenlyFeast").collection("addToCart");
 
+    //JWT
+    app.post('/jwt',  async(req, res) => {
+      const user = req.body
+      const token = jwt.sign(user, process.env.JWT_TOKEN , { expiresIn: '7d' })
+      res.send({token})
+    })
+
+    const verifyAdmin = async(req, res, next) => {
+      // console.log("verify admin:", req);
+      const email = req.decoded.email;
+      const query = {email: email}
+      const user = await usersCollection.findOne(query)
+      if(user?.role !== 'admin'){
+        return res.status(403).send({error: true, message: "You are not admin"})
+      }
+      next();
+    }
+
     // user api 
-    app.get('/users', async(req, res) =>{
+    app.get('/users', verifyJWT, verifyAdmin, async(req, res) =>{
       const result = await usersCollection.find().toArray()
       res.send(result)
     })
@@ -45,6 +86,34 @@ async function run() {
         return res.send([])
       }
       const result = await usersCollection.insertOne(user)
+      res.send(result)
+    })
+
+
+    // verifyJWT, match email, & check admin 
+    app.get('/users/admin/:email', verifyJWT, async(req, res) => {
+      const email = req.params.email;
+
+      if(req.decoded.email !== email){
+        res.send({admin: false})
+      }
+
+      const query = {email: email}
+      const user = await usersCollection.findOne(query)
+      const result = {admin: user?.role === 'admin'}
+      res.send(result)
+    })
+
+    // make admin
+    app.patch('/users/admin/:id', async(req, res) => {
+      const id = req.params.id;
+      const filterId = {_id: new ObjectId(id)}
+      const updateDoc = {
+        $set: {
+          role: 'admin'
+        },
+      };
+      const result = await usersCollection.updateOne(filterId, updateDoc)
       res.send(result)
     })
 
@@ -62,11 +131,17 @@ async function run() {
     });
 
     // add to cart api 
-    app.get("/carts", async (req, res) => {
+    app.get("/carts", verifyJWT, async (req, res) => {
       const email = req.query.email;
       if (!email) {
         res.send([]);
       }
+
+      const decodedEmail = req.decoded.email;
+      if(email !== decodedEmail){
+        return res.status(403).send({error: true, message: 'no access'})
+      }
+
       const query = { email: email };
       const result = await addToCartCollection.find(query).toArray();
       res.send(result);
@@ -74,14 +149,14 @@ async function run() {
 
     app.post("/carts", async (req, res) => {
       const item = req.body;
-      const query = { id: item.id };
+      const query = { id: item.id, email: item.email};
       try {
         const findItem = await addToCartCollection.find(query).toArray();
         if (findItem.length === 0) {
           const result = await addToCartCollection.insertOne(item);
           res.send(result);
         } else {
-          res.send([]);
+          res.send(["you have all ready added"]);
         }
       } catch (error) {
         console.log(error);
