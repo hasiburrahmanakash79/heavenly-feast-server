@@ -124,6 +124,12 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/menu", verifyJWT, verifyAdmin, async(req, res) => {
+      const newItem = req.body
+      const result = await heavenlyFeastMenuCollection.insertOne(newItem)
+      res.send(result)
+    })
+
     // reviewCollection
     app.get("/review", async (req, res) => {
       const result = await reviewCollection.find().toArray();
