@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-jwt = require('jsonwebtoken');
+jwt = require("jsonwebtoken");
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
@@ -9,27 +9,28 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-
-// JWT token verify 
+// JWT token verify
 const verifyJWT = (req, res, next) => {
-  const authorization = req.headers.authorization
-  if(!authorization){
-    return res.status(401).send({ error: true, message: 'unauthorized access'})
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res
+      .status(401)
+      .send({ error: true, message: "unauthorized access" });
   }
   //bearer token
-  const token = authorization.split(' ')[1];
+  const token = authorization.split(" ")[1];
 
   jwt.verify(token, process.env.JWT_TOKEN, (err, decoded) => {
-    if(err){
-      return res.status(401).send({ error: true, message: 'unauthorized access'})
+    if (err) {
+      return res
+        .status(401)
+        .send({ error: true, message: "unauthorized access" });
     }
     req.decoded = decoded;
     // console.log("verify jwt", req.decoded);
-    next()
-  })
-}
-
-
+    next();
+  });
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.xvcivem.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -52,71 +53,73 @@ async function run() {
       .db("heavenlyFeast")
       .collection("menu");
     const reviewCollection = client.db("heavenlyFeast").collection("review");
-    const addToCartCollection = client.db("heavenlyFeast").collection("addToCart");
+    const addToCartCollection = client
+      .db("heavenlyFeast")
+      .collection("addToCart");
 
     //JWT
-    app.post('/jwt',  async(req, res) => {
-      const user = req.body
-      const token = jwt.sign(user, process.env.JWT_TOKEN , { expiresIn: '7d' })
-      res.send({token})
-    })
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT_TOKEN, { expiresIn: "7d" });
+      res.send({ token });
+    });
 
-    const verifyAdmin = async(req, res, next) => {
+    const verifyAdmin = async (req, res, next) => {
       // console.log("verify admin:", req);
       const email = req.decoded.email;
-      const query = {email: email}
-      const user = await usersCollection.findOne(query)
-      if(user?.role !== 'admin'){
-        return res.status(403).send({error: true, message: "You are not admin"})
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "You are not admin" });
       }
       next();
-    }
+    };
 
-    // user api 
-    app.get('/users', verifyJWT, verifyAdmin, async(req, res) =>{
-      const result = await usersCollection.find().toArray()
-      res.send(result)
-    })
+    // user api
+    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
 
-    app.post('/users', async(req, res) => {
-      const user = req.body
-      const query = {email: user.email}
-      const existingUser = await usersCollection.findOne(query)
-      if(existingUser){
-        return res.send([])
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const existingUser = await usersCollection.findOne(query);
+      if (existingUser) {
+        return res.send([]);
       }
-      const result = await usersCollection.insertOne(user)
-      res.send(result)
-    })
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
 
-
-    // verifyJWT, match email, & check admin 
-    app.get('/users/admin/:email', verifyJWT, async(req, res) => {
+    // verifyJWT, match email, & check admin
+    app.get("/users/admin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
 
-      if(req.decoded.email !== email){
-        res.send({admin: false})
+      if (req.decoded.email !== email) {
+        res.send({ admin: false });
       }
 
-      const query = {email: email}
-      const user = await usersCollection.findOne(query)
-      const result = {admin: user?.role === 'admin'}
-      res.send(result)
-    })
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const result = { admin: user?.role === "admin" };
+      res.send(result);
+    });
 
     // make admin
-    app.patch('/users/admin/:id', async(req, res) => {
+    app.patch("/users/admin/:id", async (req, res) => {
       const id = req.params.id;
-      const filterId = {_id: new ObjectId(id)}
+      const filterId = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
-          role: 'admin'
+          role: "admin",
         },
       };
-      const result = await usersCollection.updateOne(filterId, updateDoc)
-      res.send(result)
-    })
-
+      const result = await usersCollection.updateOne(filterId, updateDoc);
+      res.send(result);
+    });
 
     //menu api
     app.get("/menu", async (req, res) => {
@@ -124,11 +127,18 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/menu", verifyJWT, verifyAdmin, async(req, res) => {
-      const newItem = req.body
-      const result = await heavenlyFeastMenuCollection.insertOne(newItem)
-      res.send(result)
-    })
+    app.post("/menu", verifyJWT, verifyAdmin, async (req, res) => {
+      const newItem = req.body;
+      const result = await heavenlyFeastMenuCollection.insertOne(newItem);
+      res.send(result);
+    });
+
+    app.delete("/menu/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await heavenlyFeastMenuCollection.deleteOne(query);
+      res.send(result);
+    });
 
     // reviewCollection
     app.get("/review", async (req, res) => {
@@ -136,7 +146,7 @@ async function run() {
       res.send(result);
     });
 
-    // add to cart api 
+    // add to cart api
     app.get("/carts", verifyJWT, async (req, res) => {
       const email = req.query.email;
       if (!email) {
@@ -144,8 +154,8 @@ async function run() {
       }
 
       const decodedEmail = req.decoded.email;
-      if(email !== decodedEmail){
-        return res.status(403).send({error: true, message: 'no access'})
+      if (email !== decodedEmail) {
+        return res.status(403).send({ error: true, message: "no access" });
       }
 
       const query = { email: email };
@@ -155,7 +165,7 @@ async function run() {
 
     app.post("/carts", async (req, res) => {
       const item = req.body;
-      const query = { id: item.id, email: item.email};
+      const query = { id: item.id, email: item.email };
       try {
         const findItem = await addToCartCollection.find(query).toArray();
         if (findItem.length === 0) {
@@ -169,7 +179,7 @@ async function run() {
       }
     });
 
-    // delete add to cart 
+    // delete add to cart
     app.delete("/carts/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
