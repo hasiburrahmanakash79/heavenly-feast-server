@@ -27,7 +27,6 @@ const verifyJWT = (req, res, next) => {
         .send({ error: true, message: "unauthorized access" });
     }
     req.decoded = decoded;
-    // console.log("verify jwt", req.decoded);
     next();
   });
 };
@@ -49,13 +48,10 @@ async function run() {
     await client.connect();
 
     const usersCollection = client.db("heavenlyFeast").collection("users");
-    const heavenlyFeastMenuCollection = client
-      .db("heavenlyFeast")
-      .collection("menu");
+    const heavenlyFeastMenuCollection = client.db("heavenlyFeast").collection("menu");
     const reviewCollection = client.db("heavenlyFeast").collection("review");
-    const addToCartCollection = client
-      .db("heavenlyFeast")
-      .collection("addToCart");
+    const addToCartCollection = client.db("heavenlyFeast").collection("addToCart");
+
 
     //JWT
     app.post("/jwt", async (req, res) => {
@@ -102,7 +98,7 @@ async function run() {
         res.send({ admin: false });
       }
 
-      const query = { email: email };
+      const query = { email: email }; 
       const user = await usersCollection.findOne(query);
       const result = { admin: user?.role === "admin" };
       res.send(result);
