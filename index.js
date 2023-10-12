@@ -97,7 +97,6 @@ async function run() {
       if (req.decoded.email !== email) {
         res.send({ admin: false });
       }
-
       const query = { email: email }; 
       const user = await usersCollection.findOne(query);
       const result = { admin: user?.role === "admin" };
