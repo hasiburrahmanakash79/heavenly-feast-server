@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 jwt = require("jsonwebtoken");
+const SSLCommerzPayment = require('sslcommerz-lts')
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
@@ -41,6 +42,11 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+// TODO
+const store_id = process.env.STORE_ID
+const store_passwd = process.env.STORE_PASS
+const is_live = false
 
 async function run() {
   try {
