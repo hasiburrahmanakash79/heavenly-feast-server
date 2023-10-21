@@ -58,7 +58,9 @@ async function run() {
       .db("heavenlyFeast")
       .collection("menu");
     const reviewCollection = client.db("heavenlyFeast").collection("review");
-    const confirmOrderCollection = client.db("heavenlyFeast").collection("confirmOrder");
+    const confirmOrderCollection = client
+      .db("heavenlyFeast")
+      .collection("confirmOrder");
     const addToCartCollection = client
       .db("heavenlyFeast")
       .collection("addToCart");
@@ -130,22 +132,35 @@ async function run() {
           paymentStatus: false,
           transactionId: tran_id,
         };
-        const result = confirmOrderCollection.insertOne(confirmOrder)
+        const result = confirmOrderCollection.insertOne(confirmOrder);
       });
 
-      app.post('/payment/success/:tranId', async(req, res) =>{
+      app.post("/payment/success/:tranId", async (req, res) => {
         const result = await confirmOrderCollection.updateOne(
-          {transactionId: req.params.tranId},
+          { transactionId: req.params.tranId },
           {
-            $set:{
+            $set: {
               paymentStatus: true,
-            }
+            },
           }
         );
-        if((await result).modifiedCount>0){
-          res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
+        if (result.modifiedCount > 0) {
+          res.redirect(
+            `http://localhost:5173/payment/success/${req.params.tranId}`
+          );
         }
-      })
+      });
+
+      app.post("/payment/fail/:tranId", async (req, res) => {
+        const result = await confirmOrderCollection.deleteOne({
+          transactionId: req.params.tranId,
+        });
+        if (result.deletedCount > 0) {
+          res.redirect(
+            `http://localhost:5173/payment/fail/${req.params.tranId}`
+          );
+        }
+      });
     });
 
     // user api
