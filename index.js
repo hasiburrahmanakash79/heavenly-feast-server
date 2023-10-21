@@ -92,7 +92,7 @@ async function run() {
         total_amount: item?.price,
         currency: req.body?.currency,
         tran_id: tran_id,
-        success_url: "http://localhost:3030/success",
+        success_url: `http://localhost:5000/payment/success/${tran_id}`,
         fail_url: "http://localhost:3030/fail",
         cancel_url: "http://localhost:3030/cancel",
         ipn_url: "http://localhost:3030/ipn",
@@ -133,15 +133,18 @@ async function run() {
         const result = confirmOrderCollection.insertOne(confirmOrder)
       });
 
-      app.post('/payment.success/:tranId', async(req, res) =>{
-        const result = confirmOrderCollection.updateOne(
+      app.post('/payment/success/:tranId', async(req, res) =>{
+        const result = await confirmOrderCollection.updateOne(
           {transactionId: req.params.tranId},
           {
             $set:{
               paymentStatus: true,
             }
           }
-        )
+        );
+        if((await result).modifiedCount>0){
+          res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
+        }
       })
     });
 
