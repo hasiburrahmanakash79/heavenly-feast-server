@@ -58,6 +58,7 @@ async function run() {
       .db("heavenlyFeast")
       .collection("menu");
     const reviewCollection = client.db("heavenlyFeast").collection("review");
+    const confirmOrderCollection = client.db("heavenlyFeast").collection("confirmOrder");
     const addToCartCollection = client
       .db("heavenlyFeast")
       .collection("addToCart");
@@ -123,6 +124,13 @@ async function run() {
         let GatewayPageURL = apiResponse.GatewayPageURL;
         res.send({ url: GatewayPageURL });
         console.log("Redirecting to: ", GatewayPageURL);
+
+        const confirmOrder = {
+          item,
+          paymentStatus: false,
+          transactionId: tran_id,
+        };
+        const result = confirmOrderCollection.insertOne(confirmOrder)
       });
     });
 
