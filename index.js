@@ -277,7 +277,7 @@ async function run() {
       
           if (deletedItem.deletedCount > 0) {
             // Successfully deleted the item
-            res.redirect(`http://localhost:5173/payment/success/${transactionId}`);
+            res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`);
           } else {
             // Handle the case where the item wasn't deleted
             res.status(500).json({ error: "Failed to delete the item from addToCartCollection" });
@@ -295,7 +295,7 @@ async function run() {
         });
         if (result.deletedCount > 0) {
           res.redirect(
-            `http://localhost:5173/payment/fail/${transactionId}`
+            `http://localhost:5173/payment/fail/${req.params.tranId}`
           );
         }
       });
