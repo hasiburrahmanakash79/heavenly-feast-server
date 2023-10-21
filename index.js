@@ -81,16 +81,13 @@ async function run() {
 
     const tran_id = new ObjectId().toString()
     app.post('/order', async(req, res) => {
-      console.log(req.body);
       const item = await addToCartCollection.findOne({
         _id: new ObjectId(req.body.itemsID)
       })
-      
-
       const data = {
         total_amount: item?.price,
         currency: req.body?.currency,
-        tran_id: tran_id, // use unique tran_id for each api call
+        tran_id: tran_id,
         success_url: 'http://localhost:3030/success',
         fail_url: 'http://localhost:3030/fail',
         cancel_url: 'http://localhost:3030/cancel',
@@ -118,6 +115,8 @@ async function run() {
         ship_country: 'Bangladesh',
     };
     console.log(data, "------------120");
+
+
     const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
     sslcz.init(data).then(apiResponse => {
         // Redirect the user to payment gateway
