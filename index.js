@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 jwt = require("jsonwebtoken");
-const SSLCommerzPayment = require('sslcommerz-lts')
+const SSLCommerzPayment = require("sslcommerz-lts");
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
@@ -44,9 +44,9 @@ const client = new MongoClient(uri, {
 });
 
 // TODO
-const store_id = process.env.STORE_ID
-const store_passwd = process.env.STORE_PASS
-const is_live = false
+const store_id = process.env.STORE_ID;
+const store_passwd = process.env.STORE_PASS;
+const is_live = false;
 
 async function run() {
   try {
@@ -54,10 +54,13 @@ async function run() {
     await client.connect();
 
     const usersCollection = client.db("heavenlyFeast").collection("users");
-    const heavenlyFeastMenuCollection = client.db("heavenlyFeast").collection("menu");
+    const heavenlyFeastMenuCollection = client
+      .db("heavenlyFeast")
+      .collection("menu");
     const reviewCollection = client.db("heavenlyFeast").collection("review");
-    const addToCartCollection = client.db("heavenlyFeast").collection("addToCart");
-
+    const addToCartCollection = client
+      .db("heavenlyFeast")
+      .collection("addToCart");
 
     //JWT
     app.post("/jwt", async (req, res) => {
@@ -79,52 +82,51 @@ async function run() {
       next();
     };
 
-    const tran_id = new ObjectId().toString()
-    app.post('/order', async(req, res) => {
+    const tran_id = new ObjectId().toString();
+    app.post("/order", async (req, res) => {
       const item = await addToCartCollection.findOne({
-        _id: new ObjectId(req.body.itemsID)
-      })
+        _id: new ObjectId(req.body.itemsID),
+      });
       const data = {
         total_amount: item?.price,
         currency: req.body?.currency,
         tran_id: tran_id,
-        success_url: 'http://localhost:3030/success',
-        fail_url: 'http://localhost:3030/fail',
-        cancel_url: 'http://localhost:3030/cancel',
-        ipn_url: 'http://localhost:3030/ipn',
-        shipping_method: 'Courier',
+        success_url: "http://localhost:3030/success",
+        fail_url: "http://localhost:3030/fail",
+        cancel_url: "http://localhost:3030/cancel",
+        ipn_url: "http://localhost:3030/ipn",
+        shipping_method: "Courier",
         product_name: item?.name,
-        product_category: 'Electronic',
+        product_category: "Electronic",
         product_profile: item?.image,
         cus_name: req.body?.name,
         cus_email: req.body?.email,
         cus_add1: req.body?.location,
-        cus_add2: 'Dhaka',
-        cus_city: 'Dhaka',
-        cus_state: 'Dhaka',
-        cus_postcode: '1000',
-        cus_country: 'Bangladesh',
+        cus_add2: "Dhaka",
+        cus_city: "Dhaka",
+        cus_state: "Dhaka",
+        cus_postcode: "1000",
+        cus_country: "Bangladesh",
         cus_phone: req.body?.phone,
-        cus_fax: '01711111111',
-        ship_name: 'Customer Name',
-        ship_add1: 'Dhaka',
-        ship_add2: 'Dhaka',
-        ship_city: 'Dhaka',
-        ship_state: 'Dhaka',
+        cus_fax: "01711111111",
+        ship_name: "Customer Name",
+        ship_add1: "Dhaka",
+        ship_add2: "Dhaka",
+        ship_city: "Dhaka",
+        ship_state: "Dhaka",
         ship_postcode: 1000,
-        ship_country: 'Bangladesh',
-    };
-    console.log(data, "------------120");
+        ship_country: "Bangladesh",
+      };
+      console.log(data, "------------120");
 
-
-    const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
-    sslcz.init(data).then(apiResponse => {
+      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
+      sslcz.init(data).then((apiResponse) => {
         // Redirect the user to payment gateway
-        let GatewayPageURL = apiResponse.GatewayPageURL
-        res.redirect(GatewayPageURL)
-        console.log('Redirecting to: ', GatewayPageURL)
+        let GatewayPageURL = apiResponse.GatewayPageURL;
+        res.send({ url: GatewayPageURL });
+        console.log("Redirecting to: ", GatewayPageURL);
+      });
     });
-    })
 
     // user api
     app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
@@ -150,7 +152,7 @@ async function run() {
       if (req.decoded.email !== email) {
         res.send({ admin: false });
       }
-      const query = { email: email }; 
+      const query = { email: email };
       const user = await usersCollection.findOne(query);
       const result = { admin: user?.role === "admin" };
       res.send(result);
