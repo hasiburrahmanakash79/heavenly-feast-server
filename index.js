@@ -245,28 +245,57 @@ async function run() {
       });
 
       app.post("/payment/success/:tranId", async (req, res) => {
+        // const result = await confirmOrderCollection.updateOne(
+        //   { transactionId: req.params.tranId },
+        //   {
+        //     $set: {
+        //       paymentStatus: true,
+        //     },
+        //   }
+        // );
+        // if (result.modifiedCount > 0) {
+        //   res.redirect(
+        //     `http://localhost:5173/payment/success/${req.params.tranId}`
+        //   );
+        //   const result = addToCartCollection.deleteOne(item)
+        // }
+        const transactionId = req.params.tranId;
+
+        // First, update the payment status in the confirmOrderCollection
         const result = await confirmOrderCollection.updateOne(
-          { transactionId: req.params.tranId },
+          { transactionId: transactionId },
           {
             $set: {
               paymentStatus: true,
             },
           }
         );
+      
         if (result.modifiedCount > 0) {
-          res.redirect(
-            `http://localhost:5173/payment/success/${req.params.tranId}`
-          );
+          // If the payment status was successfully updated, delete the item from addToCartCollection
+          const deletedItem = await addToCartCollection.deleteOne(item);
+      
+          if (deletedItem.deletedCount > 0) {
+            // Successfully deleted the item
+            res.redirect(`http://localhost:5173/payment/success/${transactionId}`);
+          } else {
+            // Handle the case where the item wasn't deleted
+            res.status(500).json({ error: "Failed to delete the item from addToCartCollection" });
+          }
+        } else {
+          // Handle the case where the payment status wasn't updated
+          res.status(500).json({ error: "Failed to update payment status" });
         }
       });
 
       app.post("/payment/fail/:tranId", async (req, res) => {
+        const transactionId = req.params.tranId;
         const result = await confirmOrderCollection.deleteOne({
           transactionId: req.params.tranId,
         });
         if (result.deletedCount > 0) {
           res.redirect(
-            `http://localhost:5173/payment/fail/${req.params.tranId}`
+            `http://localhost:5173/payment/fail/${transactionId}`
           );
         }
       });
