@@ -132,6 +132,17 @@ async function run() {
         };
         const result = confirmOrderCollection.insertOne(confirmOrder)
       });
+
+      app.post('/payment.success/:tranId', async(req, res) =>{
+        const result = confirmOrderCollection.updateOne(
+          {transactionId: req.params.tranId},
+          {
+            $set:{
+              paymentStatus: true,
+            }
+          }
+        )
+      })
     });
 
     // user api
