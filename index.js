@@ -220,6 +220,7 @@ async function run() {
       const item = await addToCartCollection.findOne({
         _id: new ObjectId(req.body.itemsID),
       });
+      const email = req.query.email;
       const data = {
         total_amount: item?.price,
         currency: req.body?.currency,
@@ -261,6 +262,7 @@ async function run() {
           item,
           paymentStatus: false,
           tranId: tran_id,
+          email: email
         };
         const result = confirmOrderCollection.insertOne(confirmOrder);
       });
@@ -312,6 +314,21 @@ async function run() {
           );
         }
       });
+    });
+
+
+    app.get("/history", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      if (!email) {
+        res.send([]);
+      }
+      const decodedEmail = req.decoded?.email;
+      if (email !== decodedEmail) {
+        return res.status(403).send({ error: true, message: "no access" });
+      }
+      const query = { email: email };
+      const result = await confirmOrderCollection.find(query).toArray();
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
