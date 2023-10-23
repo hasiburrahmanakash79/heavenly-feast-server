@@ -32,6 +32,27 @@ const verifyJWT = (req, res, next) => {
   });
 };
 
+// const verifyJWT = (req, res, next) => {
+//   const authorization = req.headers.authorization;
+//   if (!authorization) {
+//     return res
+//       .status(401)
+//       .send({ error: true, message: "unauthorized access" });
+//   }
+//   //bearer token
+//   const token = authorization.split(" ")[1];
+
+//   jwt.verify(token, process.env.SECRET_TOKEN, (err, decoded) => {
+//     if (err) {
+//       return res
+//         .status(401)
+//         .send({ error: true, message: "unauthorized access" });
+//     }
+//     req.decoded = decoded;
+//     next();
+//   });
+// };
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.xvcivem.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -72,26 +93,26 @@ async function run() {
       res.send({ token });
     });
 
-    const verifyAdmin = async (req, res, next) => {
-      // console.log("verify admin:", req);
-      const email = req.decoded.email;
-      const query = { email: email };
-      const user = await usersCollection.findOne(query);
-      if (user?.role !== "admin") {
-        return res
-          .status(403)
-          .send({ error: true, message: "You are not admin" });
-      }
-      next();
-    };
+    // const verifyAdmin = async (req, res, next) => {
+    //   // console.log("verify admin:", req);
+    //   const email = req.decoded.email;
+    //   const query = { email: email };
+    //   const user = await usersCollection.findOne(query);
+    //   if (user?.role !== "admin") {
+    //     return res
+    //       .status(403)
+    //       .send({ error: true, message: "You are not admin" });
+    //   }
+    //   next();
+    // };
 
     // user api
-    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
+    app.get("/users", verifyJWT,  async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
 
-    app.post("/users", async (req, res) => {
+    app.post("/users", verifyJWT, async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
       const existingUser = await usersCollection.findOne(query);
@@ -106,7 +127,7 @@ async function run() {
     app.get("/users/admin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
 
-      if (req.decoded.email !== email) {
+      if (req.decoded?.email !== email) {
         res.send({ admin: false });
       }
       const query = { email: email };
@@ -116,7 +137,7 @@ async function run() {
     });
 
     // make admin
-    app.patch("/users/admin/:id", async (req, res) => {
+    app.patch("/users/admin/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const filterId = { _id: new ObjectId(id) };
       const updateDoc = {
@@ -134,13 +155,13 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/menu", verifyJWT, verifyAdmin, async (req, res) => {
+    app.post("/menu", async (req, res) => {
       const newItem = req.body;
       const result = await heavenlyFeastMenuCollection.insertOne(newItem);
       res.send(result);
     });
 
-    app.delete("/menu/:id", verifyJWT, verifyAdmin, async (req, res) => {
+    app.delete("/menu/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await heavenlyFeastMenuCollection.deleteOne(query);
@@ -160,7 +181,7 @@ async function run() {
         res.send([]);
       }
 
-      const decodedEmail = req.decoded.email;
+      const decodedEmail = req.decoded?.email;
       if (email !== decodedEmail) {
         return res.status(403).send({ error: true, message: "no access" });
       }
@@ -239,59 +260,51 @@ async function run() {
         const confirmOrder = {
           item,
           paymentStatus: false,
-          transactionId: tran_id,
+          tranId: tran_id,
         };
         const result = confirmOrderCollection.insertOne(confirmOrder);
       });
 
       app.post("/payment/success/:tranId", async (req, res) => {
-        // const result = await confirmOrderCollection.updateOne(
-        //   { transactionId: req.params.tranId },
-        //   {
-        //     $set: {
-        //       paymentStatus: true,
-        //     },
-        //   }
-        // );
-        // if (result.modifiedCount > 0) {
-        //   res.redirect(
-        //     `http://localhost:5173/payment/success/${req.params.tranId}`
-        //   );
-        //   const result = addToCartCollection.deleteOne(item)
-        // }
-        const transactionId = req.params.tranId;
-
+        const tranId = req.params.tranId;
         // First, update the payment status in the confirmOrderCollection
         const result = await confirmOrderCollection.updateOne(
-          { transactionId: transactionId },
+          { tranId: tranId },
           {
             $set: {
               paymentStatus: true,
             },
           }
         );
-      
+
         if (result.modifiedCount > 0) {
           // If the payment status was successfully updated, delete the item from addToCartCollection
           const deletedItem = await addToCartCollection.deleteOne(item);
-      
+
           if (deletedItem.deletedCount > 0) {
             // Successfully deleted the item
-            res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`);
+            res.redirect(
+              `http://localhost:5173/payment/success/${req.params.tranId}`
+            );
           } else {
-            // Handle the case where the item wasn't deleted
-            res.status(500).json({ error: "Failed to delete the item from addToCartCollection" });
+            res
+              .status(500)
+              .json({
+                error: "Failed to delete the item from addToCartCollection",
+              });
           }
         } else {
           // Handle the case where the payment status wasn't updated
           res.status(500).json({ error: "Failed to update payment status" });
         }
       });
+      
+      
+      
 
       app.post("/payment/fail/:tranId", async (req, res) => {
-        const transactionId = req.params.tranId;
         const result = await confirmOrderCollection.deleteOne({
-          transactionId: req.params.tranId,
+          tranId: req.params.tranId,
         });
         if (result.deletedCount > 0) {
           res.redirect(
