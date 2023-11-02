@@ -170,6 +170,11 @@ async function run() {
     });
 
     //booking api
+    app.get("/booking", async(req, res) => {
+      const result = await bookingCollection.find().toArray()
+      res.send(result)
+    })
+
     app.post("/booking", async(req, res) => {
       const booking = req.body;
       const result = await bookingCollection.insertOne(booking)
