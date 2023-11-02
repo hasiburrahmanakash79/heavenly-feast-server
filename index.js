@@ -85,6 +85,7 @@ async function run() {
     const addToCartCollection = client
       .db("heavenlyFeast")
       .collection("addToCart");
+    const bookingCollection = client.db("heavenlyFeast").collection("booking")
 
     //JWT
     app.post("/jwt", async (req, res) => {
@@ -167,6 +168,13 @@ async function run() {
       const result = await heavenlyFeastMenuCollection.deleteOne(query);
       res.send(result);
     });
+
+    //booking api
+    app.post("/booking", async(req, res) => {
+      const booking = req.body;
+      const result = await bookingCollection.insertOne(booking)
+      res.send(result)
+    })
 
     // reviewCollection
     app.get("/review", async (req, res) => {
