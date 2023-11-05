@@ -175,8 +175,9 @@ async function run() {
       res.send(result)
     })
 
-    app.get("/booking", verifyJWT, async (req, res) => {
+    app.get("/booking/:email", verifyJWT, async (req, res) => {
       const email = req.query.email;
+      console.log(email);
       if (!email) {
         res.send([]);
       }
