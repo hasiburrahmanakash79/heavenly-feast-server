@@ -175,6 +175,20 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/booking", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      if (!email) {
+        res.send([]);
+      }
+      const decodedEmail = req.decoded?.email;
+      if (email !== decodedEmail) {
+        return res.status(403).send({ error: true, message: "no access" });
+      }
+      const query = { email: email };
+      const result = await bookingCollection.find(query).toArray();
+      res.send(result);
+    });
+
     app.post("/booking", async(req, res) => {
       const booking = req.body;
       const result = await bookingCollection.insertOne(booking)
@@ -193,12 +207,10 @@ async function run() {
       if (!email) {
         res.send([]);
       }
-
       const decodedEmail = req.decoded?.email;
       if (email !== decodedEmail) {
         return res.status(403).send({ error: true, message: "no access" });
       }
-
       const query = { email: email };
       const result = await addToCartCollection.find(query).toArray();
       res.send(result);
