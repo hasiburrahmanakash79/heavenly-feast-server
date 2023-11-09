@@ -252,8 +252,8 @@ async function run() {
         total_amount: item?.price,
         currency: req.body?.currency,
         tran_id: tran_id,
-        success_url: `http://localhost:5000/payment/success/${tran_id}`,
-        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
+        success_url: `https://heavenly-feast-server.vercel.app/payment/success/${tran_id}`,
+        fail_url: `https://heavenly-feast-server.vercel.app/payment/fail/${tran_id}`,
         cancel_url: "http://localhost:3030/cancel",
         ipn_url: "http://localhost:3030/ipn",
         shipping_method: "Courier",
@@ -313,7 +313,7 @@ async function run() {
           if (deletedItem.deletedCount > 0) {
             // Successfully deleted the item
             res.redirect(
-              `http://localhost:5173/payment/success/${req.params.tranId}`
+              `https://heavenly-feast.web.app/payment/success/${req.params.tranId}`
             );
           } else {
             res
@@ -337,7 +337,7 @@ async function run() {
         });
         if (result.deletedCount > 0) {
           res.redirect(
-            `http://localhost:5173/payment/fail/${req.params.tranId}`
+            `https://heavenly-feast.web.app/payment/fail/${req.params.tranId}`
           );
         }
       });
